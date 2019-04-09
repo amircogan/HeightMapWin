@@ -308,7 +308,7 @@ namespace HeightMap4
             // write back the third array
 
 
-            // color file
+            // file #1
             string fname = args[1];
             Bitmap bmp = new Bitmap(fname);
             // Lock the bitmap's bits.  
@@ -323,7 +323,7 @@ namespace HeightMap4
             Marshal.Copy(ptr, rgbValues, 0, bytes);
 
 
-            // grey level files (from photoshop)
+            // file #2
             string fname2 = args[2];
             Bitmap bmp2 = new Bitmap(fname2);
             // Lock the bitmap's bits.  
@@ -343,6 +343,12 @@ namespace HeightMap4
                 ExitMsg("different number of pixels in files: color:" + bytes.ToString() + "  greyscale:" + bytes2.ToString());
             }
 
+            double ratioFile1 = Convert.ToDouble(args[3]);
+            double ratioFile2 = 1;
+            double weightFile1 = ratioFile1 / (ratioFile1 + ratioFile2);
+            double weightFile2 = ratioFile2 / (ratioFile1 + ratioFile2);
+
+
             // itterate the values and change by algorithm
             int stride = bmpData.Stride;
             for (int x = 0; x < bmpData.Width; x++)
@@ -358,9 +364,17 @@ namespace HeightMap4
                     byte b2= rgbValues2[(y * stride) + (x * 3) + 2];
 
 
-                    byte r3 = Convert.ToByte(r / 3 + r2 / 3 * 2);
-                    byte g3 = Convert.ToByte(g / 3 + g2 / 3 * 2);
-                    byte b3 = Convert.ToByte(b / 3 + b2 / 3 * 2);
+                    double dr3 = r * weightFile1 + r2 * weightFile2;
+                    double dg3 = g * weightFile1 + g2 * weightFile2;
+                    double db3 = b * weightFile1 + b2 * weightFile2;
+
+                    if (dr3 > 255) dr3 = 255;
+                    if (dg3 > 255) dg3 = 255;
+                    if (db3 > 255) db3 = 255;
+
+                    byte r3 = Convert.ToByte(dr3);
+                    byte g3 = Convert.ToByte(dg3);
+                    byte b3 = Convert.ToByte(db3);
 
 
                     rgbValues[(y * stride) + (x * 3)] = r3;
@@ -377,6 +391,7 @@ namespace HeightMap4
 
             string[] s = fname.Split('.');
             string newName = string.Concat(s[0], "_added", ".", s[1]);
+            MyDebug("save composit file to: " + newName);
             bmp.Save(newName, ImageFormat.Jpeg);
         }
 

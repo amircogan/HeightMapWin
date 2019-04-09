@@ -159,8 +159,9 @@ namespace HeightMapWin
 
                 case 2: // add 2 files
                     args[0] = "add";
-                    args[1] = textBox6.Text; //image file
-                    args[2] = textBox5.Text;  // brush file
+                    args[1] = textBox6.Text; // file #1
+                    args[2] = textBox5.Text;  // file  #2
+                    args[3] = textBox7.Text; // ratio #1/#2
                     break;
 
                 case 3: // ant killer

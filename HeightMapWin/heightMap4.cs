@@ -47,7 +47,7 @@ namespace HeightMap4
         {
             form = f;
             textBox = t;
-        } 
+        }
 
         public static void Start(string[] args)
         {
@@ -66,13 +66,17 @@ namespace HeightMap4
             {
                 //Ants(args);
                 // need alot of heap for man many recursive calls, so do it via a new thread
-                Thread T = new Thread(()=> Ants(args), 1000000000);
+                Thread T = new Thread(() => Ants(args), 1000000000);
                 T.Start();
             }
+            else if (mode == "one_color_modify")
+                OneColorModify(args);
         }
+
 
         const byte ELP_MEMBER = 1;
         public static int antThreshold;
+
 
         private static void Ants(string[] args)
         {
@@ -570,6 +574,132 @@ namespace HeightMap4
             string newName = string.Concat(s[0], "_new", ".", s[1]);
             bmp.Save(newName, ImageFormat.Jpeg);
             MyDebug("saved heightmap to file " + newName);
+        }
+
+
+        // resize /10 in paint.net and resized back when done otherwize crashes.
+        // even quality 7 in paint.net is good
+        // rgb - blue is first in byte array
+        // last sent to ray - sensativity 130 , divide by 2 to make clouds darker (smaller value), added check it is not bluish (blueih == blue larger tahn green & red by 10
+        private static void OneColorModify(string[] args)
+        {
+            // get 2 files, color
+            // open both files 
+            // scan real image, find pixels with color (with some sensativity)
+            // for each found modify the respective pixel in the height map file - flip the height 
+
+            int[] color = args[1].Split(',').Select(c => Convert.ToInt32(c)).ToArray();
+            int sensativity = Convert.ToInt32(args[2]) ; 
+
+            // image file
+            string fname = args[3];
+            Bitmap bmp = Image.FromFile(fname) as Bitmap;
+            //Bitmap bmp = new Bitmap(fname);
+            // Lock the bitmap's bits.  
+            Rectangle rect = new Rectangle(0, 0, bmp.Width, bmp.Height);
+            BitmapData bmpData = bmp.LockBits(rect, ImageLockMode.ReadWrite, PixelFormat.Format24bppRgb);
+            // Get the address of the first line.
+            IntPtr ptr = bmpData.Scan0;
+            // Declare an array to hold the bytes of the bitmap.
+            int bytes = bmpData.Stride * bmp.Height;
+            byte[] rgbValues = new byte[bytes];
+            // Copy the RGB values into the array.
+            Marshal.Copy(ptr, rgbValues, 0, bytes);
+
+            // height file
+            string fname2 = args[4];
+            Bitmap bmp2 = new Bitmap(fname2);
+            // Lock the bitmap's bits.  
+            Rectangle rect2 = new Rectangle(0, 0, bmp2.Width, bmp2.Height);
+            BitmapData bmpData2 = bmp2.LockBits(rect2, ImageLockMode.ReadWrite,  PixelFormat.Format24bppRgb  );
+            // Get the address of the first line.
+            IntPtr ptr2 = bmpData2.Scan0;
+            // Declare an array to hold the bytes of the bitmap.
+            int bytes2 = bmpData2.Stride * bmp2.Height;
+            byte[] rgbValues2 = new byte[bytes2];
+            // Copy the RGB values into the array.
+            Marshal.Copy(ptr2, rgbValues2, 0, bytes2);
+
+
+            if (bytes != bytes2)
+            {
+                ExitMsg("different number of pixels in files: image:" + bytes.ToString() + "  heights:" + bytes2.ToString());
+                return;
+            }
+
+
+            // itterate the height values 
+            int stride = bmpData2.Stride;
+            for (int x = 0; x < bmpData2.Width; x++)
+            {
+                for (int y = 0; y < bmpData2.Height; y++)
+                {
+                    try
+                    {
+                        // height color
+                        int loc = (y * stride) + (x * 3);
+                        byte r2 = rgbValues2[loc];
+                        byte g2 = rgbValues2[loc + 1];
+                        byte b2 = rgbValues2[loc + 2];
+
+                        // check if pixel within sensativity closefulness to color
+                        if (color[0] > r2 - sensativity && color[0] < r2 + sensativity &&
+                            color[1] > g2 - sensativity && color[1] < g2 + sensativity &&
+                            color[2] > b2 - sensativity && color[2] < b2 + sensativity)
+                        {
+
+                            byte b = rgbValues[loc];
+                            byte g = rgbValues[loc + 1];
+                            byte r = rgbValues[loc + 2];
+
+                            // if it is not too blue
+                            bool isBluish = ((b - r > 10) && (b - g > 10));
+                            if (!isBluish) {
+                                // raise the height
+                                // height color
+                                //MyDebug($"{x},{y} color: {rgbValues2[loc]},{ rgbValues2[loc + 1]},{rgbValues2[loc + 2]}");
+                                rgbValues2[loc] = (byte)((255 - rgbValues2[loc]) / 2);
+                                rgbValues2[loc + 1] = (byte)((255 - rgbValues2[loc + 1]) / 2);
+                                rgbValues2[loc + 2] = (byte)((255 - rgbValues2[loc + 2]) / 2);
+                                //MyDebug($"{x},{y} newcolor: {rgbValues2[loc]},{ rgbValues2[loc + 1]},{rgbValues2[loc + 2]}");
+                                //MyDebug("");
+                            }
+                        }
+                    }
+                    catch (Exception e) {
+                        // just go on
+                    }
+                }
+            }
+
+
+            // create bitmap back from new values
+            // Commit the changes, and unlock the 50x30 portion of the bitmap.  
+            Marshal.Copy(rgbValues2, 0, ptr2, bytes2);
+            bmp2.UnlockBits(bmpData2);
+
+            string[] s = fname2.Split('.');
+            string newName = string.Concat(s[0], "_modified3", ".", s[1]);
+            MyDebug("save modified height file to: " + newName);
+
+
+            bmp2.Save(newName, ImageFormat.Jpeg);
+
+
+            //string outputFileName = newName;
+            //using (MemoryStream memory = new MemoryStream())
+            //{
+            //    using (FileStream fs = new FileStream(outputFileName, FileMode.Create, FileAccess.ReadWrite))
+            //    {
+            //        bmp2.Save(memory, ImageFormat.Bmp);
+            //        byte[] bytes = memory.ToArray();
+            //        fs.Write(bytes, 0, bytes.Length);
+            //    }
+            //}
+
+
+
+
         }
 
 

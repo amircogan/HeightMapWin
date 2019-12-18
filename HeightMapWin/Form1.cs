@@ -38,6 +38,7 @@ namespace HeightMapWin
                     pallete.Hide();
                     blackwhite.Show();
                     blackwhite.Location = new Point(_aPoint.X, _aPoint.Y);
+                    one_color_modify.Hide();
                     break;
                 case 1:
                     k200.Hide();
@@ -45,6 +46,7 @@ namespace HeightMapWin
                     blackwhite.Hide();
                     pallete.Show();
                     pallete.Location = new Point(_aPoint.X, _aPoint.Y);
+                    one_color_modify.Hide();
                     break;
                 case 2:
                     k200.Hide();
@@ -52,6 +54,7 @@ namespace HeightMapWin
                     add.Location = new Point(_aPoint.X, _aPoint.Y);
                     pallete.Hide();
                     blackwhite.Hide();
+                    one_color_modify.Hide();
                     break;
                 case 3:
                     k200.Show();
@@ -59,7 +62,15 @@ namespace HeightMapWin
                     add.Hide();
                     blackwhite.Hide();
                     pallete.Hide();
+                    one_color_modify.Hide();
                     break;
+                case 4:
+                    k200.Hide();
+                    add.Hide();
+                    blackwhite.Hide();
+                    pallete.Hide();
+                    one_color_modify.Show();
+                    one_color_modify.Location = new Point(_aPoint.X, _aPoint.Y); break;
             }
         }
 
@@ -170,11 +181,33 @@ namespace HeightMapWin
                     args[2] = textBox9.Text; //image file
                     args[3] = textBox8.Text; //image file
                     break;
+
+                case 4: // one color modify
+                    args[0] = "one_color_modify";
+                    args[1] = textBox11.Text; // COLOR - say 255,255,255 is white
+                    args[2] = textBox12.Text;  // color sensatvity, say 10 is plus minus 10 difference for each base color (cube, not radius for faster calc)
+                    args[3] = textBox14.Text; // image file
+                    args[4] = textBox13.Text;  // height file
+                    break;
             }
 
             HeightMap4Main.setFormStuff(this, this.resultText);
             resultText.Text = "";
             HeightMap4Main.Start(args);
+        }
+
+        private void button9_Click(object sender, EventArgs e)
+        {
+            string fname = getFile();
+            if (fname != null)
+                textBox14.Text = fname;
+        }
+
+        private void button7_Click(object sender, EventArgs e)
+        {
+            string fname = getFile();
+            if (fname != null)
+                textBox13.Text = fname;
         }
     }
 }
